@@ -4,35 +4,17 @@ import axios from 'axios';
 const api = axios.create({
   baseURL: '',
   timeout: 30000,
+  // withCredentials ensures the browser automatically sends the session cookie
+  // on every request — no manual cookie reading needed (and HttpOnly cookies
+  // cannot be read via document.cookie anyway).
   withCredentials: true,
-});
-
-api.interceptors.request.use((config) => {
-  if (typeof document !== 'undefined') {
-    const cookies = document.cookie.split(';').reduce(
-      (acc, c) => {
-        const [k, v] = c.trim().split('=');
-        acc[k] = v;
-        return acc;
-      },
-      {} as Record<string, string>
-    );
-    const token =
-      cookies['better-auth.session_token'] ||
-      cookies['better-auth.session-token'] ||
-      cookies['__session'];
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-  }
-  return config;
 });
 
 api.interceptors.response.use(
   (res) => res,
   (error) => {
     if (error.response?.status === 401) {
-      if (typeof window !== 'undefined') {
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
         window.location.href = '/login';
       }
     }
