@@ -1,5 +1,6 @@
 import winston from 'winston';
 import path from 'path';
+import fs from 'fs';
 
 const { combine, timestamp, printf, colorize, json, errors } = winston.format;
 
@@ -19,22 +20,38 @@ const devFmt = combine(
 
 const prodFmt = combine(timestamp(), errors({ stack: true }), json());
 
-export const logger = winston.createLogger({
-  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-  transports: [
-    new winston.transports.Console({
-      format: process.env.NODE_ENV === 'production' ? prodFmt : devFmt,
-    }),
+const isProduction = process.env.NODE_ENV === 'production';
+
+// On Vercel (production), the filesystem is read-only — file transports crash
+// with ENOENT. Use console-only logging; Vercel captures stdout/stderr and
+// shows them in the Functions log dashboard.
+const transports: winston.transport[] = [
+  new winston.transports.Console({
+    format: isProduction ? prodFmt : devFmt,
+  }),
+];
+
+if (!isProduction) {
+  // File transports only in local development where the filesystem is writable
+  const logsDir = path.join(process.cwd(), 'logs');
+  if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+
+  transports.push(
     new winston.transports.File({
-      filename: path.join('logs', 'error.log'),
+      filename: path.join(logsDir, 'error.log'),
       level: 'error',
       format: prodFmt,
     }),
     new winston.transports.File({
-      filename: path.join('logs', 'app.log'),
+      filename: path.join(logsDir, 'app.log'),
       format: prodFmt,
-    }),
-  ],
+    })
+  );
+}
+
+export const logger = winston.createLogger({
+  level: isProduction ? 'info' : 'debug',
+  transports,
 });
 
 // NEVER log these fields
