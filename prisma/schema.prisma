@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Better Auth required tables (exact names, do not rename) ────────────────
+
+model user {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  githubToken   String?
+  githubLogin   String?
+  avatarUrl     String?
+  sessions      session[]
+  accounts      account[]
+  analysisJobs  AnalysisJob[]
+  reports       Report[]
+}
+
+model session {
+  id        String   @id
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  expiresAt             DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  user      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+}
+
+// ─── App tables ───────────────────────────────────────────────────────────────
+
+model AnalysisJob {
+  id          String    @id @default(cuid())
+  userId      String
+  repoUrl     String
+  repoOwner   String
+  repoName    String
+  status      JobStatus @default(PENDING)
+  progress    Int       @default(0)
+  currentStep String?
+  errorMsg    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        user      @relation(fields: [userId], references: [id])
+  report      Report?
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Report {
+  id              String      @id @default(cuid())
+  jobId           String      @unique
+  userId          String
+  repoUrl         String
+  repoName        String
+  repoOwner       String
+  healthScore     Float
+  grade           String
+  subScores       Json
+  busFactor       Int
+  riskAreas       Json
+  contributors    Json
+  heatmap         Json
+  languages       Json
+  topComplexFiles Json
+  summary         String
+  rawData         Json
+  deletedAt       DateTime?
+  createdAt       DateTime    @default(now())
+  job             AnalysisJob @relation(fields: [jobId], references: [id])
+  user            user        @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}

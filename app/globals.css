@@ -1,0 +1,303 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 224 15% 6%;
+    --foreground: 213 31% 91%;
+    --card: 224 15% 9%;
+    --card-foreground: 213 31% 91%;
+    --popover: 224 15% 9%;
+    --popover-foreground: 213 31% 91%;
+    --border: 215 20% 16%;
+    --input: 215 20% 13%;
+    --ring: 217 91% 60%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 215 20% 16%;
+    --secondary-foreground: 213 31% 91%;
+    --muted: 215 20% 13%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 160 84% 39%;
+    --warning: 38 92% 50%;
+    --danger: 0 72% 51%;
+    --radius: 0.625rem;
+    --font-geist: 'Inter', system-ui, sans-serif;
+    --font-geist-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: dark;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-geist);
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: hsl(217 91% 60% / 0.3);
+    color: hsl(213 31% 91%);
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(224 15% 6%);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(215 20% 22%);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(215 20% 30%);
+  }
+
+  code, pre, .font-mono {
+    font-family: var(--font-geist-mono);
+  }
+}
+
+/* ── DNA Helix Animation ───────────────────────────────────── */
+.dna-strand {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  animation: dna-pulse 1.4s ease-in-out infinite;
+}
+.dna-strand:nth-child(2)  { animation-delay: 0.175s; }
+.dna-strand:nth-child(3)  { animation-delay: 0.35s; }
+.dna-strand:nth-child(4)  { animation-delay: 0.525s; }
+.dna-strand:nth-child(5)  { animation-delay: 0.7s; }
+.dna-strand:nth-child(6)  { animation-delay: 0.875s; }
+.dna-strand:nth-child(7)  { animation-delay: 1.05s; }
+.dna-strand:nth-child(8)  { animation-delay: 1.225s; }
+
+@keyframes dna-pulse {
+  0%, 100% { transform: scaleX(1);    opacity: 1; }
+  50%       { transform: scaleX(0.15); opacity: 0.25; }
+}
+
+.dna-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dna-dot-left  { background: hsl(var(--primary)); }
+.dna-dot-right { background: hsl(var(--accent)); }
+.dna-bridge {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(
+    to right,
+    hsl(var(--primary) / 0.6),
+    hsl(var(--accent) / 0.6)
+  );
+  border-radius: 1px;
+}
+
+/* ── Skeleton Shimmer ──────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    hsl(var(--border)) 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s linear infinite;
+  border-radius: var(--radius);
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* ── Stagger Animations ────────────────────────────────────── */
+.stagger-1 { animation: slide-in 0.4s ease-out 0.05s both; }
+.stagger-2 { animation: slide-in 0.4s ease-out 0.10s both; }
+.stagger-3 { animation: slide-in 0.4s ease-out 0.15s both; }
+.stagger-4 { animation: slide-in 0.4s ease-out 0.20s both; }
+.stagger-5 { animation: slide-in 0.4s ease-out 0.25s both; }
+.stagger-6 { animation: slide-in 0.4s ease-out 0.30s both; }
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Score Glow ────────────────────────────────────────────── */
+.score-glow {
+  filter: drop-shadow(0 0 14px currentColor);
+}
+
+.glow-blue    { box-shadow: 0 0 20px hsl(217 91% 60% / 0.25); }
+.glow-emerald { box-shadow: 0 0 20px hsl(160 84% 39% / 0.25); }
+.glow-amber   { box-shadow: 0 0 20px hsl(38 92% 50% / 0.25); }
+.glow-red     { box-shadow: 0 0 20px hsl(0 72% 51% / 0.25); }
+
+/* ── Noise Texture ─────────────────────────────────────────── */
+.noise {
+  position: relative;
+}
+.noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.025;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  border-radius: inherit;
+}
+
+/* ── Grid Background ───────────────────────────────────────── */
+.bg-grid {
+  background-image:
+    linear-gradient(hsl(var(--border) / 0.4) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--border) / 0.4) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ── Radial Gradient Hero ──────────────────────────────────── */
+.hero-glow {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, hsl(217 91% 60% / 0.15), transparent),
+    radial-gradient(ellipse 40% 30% at 80% 60%,  hsl(160 84% 39% / 0.08), transparent);
+}
+
+/* ── Card Hover ─────────────────────────────────────────────── */
+.card-hover {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+.card-hover:hover {
+  border-color: hsl(var(--primary) / 0.4);
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.15), 0 4px 24px hsl(0 0% 0% / 0.4);
+  transform: translateY(-1px);
+}
+
+/* ── Progress Bar ───────────────────────────────────────────── */
+.progress-bar {
+  height: 6px;
+  background: hsl(var(--muted));
+  border-radius: 99px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--primary)),
+    hsl(160 84% 39%)
+  );
+  transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 10px hsl(var(--primary) / 0.5);
+}
+
+/* ── Heatmap Cell ───────────────────────────────────────────── */
+.heatmap-cell {
+  border-radius: 2px;
+  transition: opacity 0.15s ease;
+}
+.heatmap-cell:hover {
+  opacity: 0.8;
+  outline: 1px solid hsl(var(--foreground) / 0.5);
+}
+
+/* ── Tab Nav ─────────────────────────────────────────────────── */
+.tab-btn {
+  @apply px-4 py-2 text-sm font-medium text-muted-foreground rounded-md transition-all duration-150;
+}
+.tab-btn:hover {
+  @apply text-foreground bg-secondary;
+}
+.tab-btn.active {
+  @apply text-foreground bg-secondary;
+  box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.4);
+  color: hsl(var(--primary));
+}
+
+/* ── Accordion ───────────────────────────────────────────────── */
+.accordion-content {
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+
+/* ── Badge ──────────────────────────────────────────────────── */
+.badge {
+  @apply inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-md border;
+}
+
+/* ── Input ──────────────────────────────────────────────────── */
+.input {
+  @apply w-full bg-input border border-border rounded-lg px-4 py-2.5 text-sm text-foreground
+         placeholder:text-muted-foreground
+         focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent
+         transition-all duration-150;
+}
+
+/* ── Button ─────────────────────────────────────────────────── */
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg
+         bg-primary text-primary-foreground text-sm font-semibold
+         hover:opacity-90 active:scale-95
+         disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
+         transition-all duration-150;
+}
+.btn-secondary {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg
+         bg-secondary text-secondary-foreground border border-border text-sm font-medium
+         hover:bg-muted active:scale-95
+         disabled:opacity-50 disabled:cursor-not-allowed
+         transition-all duration-150;
+}
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
+         text-muted-foreground text-sm font-medium
+         hover:bg-secondary hover:text-foreground active:scale-95
+         transition-all duration-150;
+}
+.btn-danger {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg
+         bg-destructive/10 text-destructive border border-destructive/30 text-sm font-semibold
+         hover:bg-destructive/20 active:scale-95
+         disabled:opacity-50 disabled:cursor-not-allowed
+         transition-all duration-150;
+}
+
+/* ── Print ──────────────────────────────────────────────────── */
+@media print {
+  .no-print { display: none !important; }
+  body { background: white !important; color: black !important; }
+  .card-hover { box-shadow: none !important; transform: none !important; }
+}
