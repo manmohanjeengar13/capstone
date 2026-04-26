@@ -10,6 +10,10 @@ async function bootstrap() {
   if (!fs.existsSync('logs')) fs.mkdirSync('logs');
 
   // Connect Redis
+  if (!redis) {
+    console.error('REDIS_URL is not set — cannot start worker.');
+    process.exit(1);
+  }
   await redis.connect();
   logger.info('Redis connected');
 
