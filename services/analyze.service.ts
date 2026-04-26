@@ -1,14 +1,12 @@
 import { prisma } from '@/lib/prisma';
 import { decrypt, encrypt } from '@/lib/crypto';
 import { logger } from '@/lib/logger';
-import { addAnalysisJob } from '@/queue/analysis.queue';
 import { runAnalysisPipeline } from '@/analyzers';
 import { AppError } from '@/types/api';
 import type { AnalysisProgress } from '@/types/analysis';
 import type { AuthUser } from './auth.service';
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY!;
-const QUEUE_ENQUEUE_TIMEOUT_MS = 5000;
 
 /**
  * Parse owner/repo from a GitHub URL.
@@ -21,22 +19,10 @@ export function parseGithubUrl(repoUrl: string): { owner: string; repo: string }
   return { owner: match[1], repo: match[2].replace(/\.git$/, '') };
 }
 
-function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(message)), ms);
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (error) => {
-        clearTimeout(timer);
-        reject(error);
-      }
-    );
-  });
-}
-
+/**
+ * Run analysis in-process (used in both development and production on Vercel,
+ * where persistent Bull workers are not available).
+ */
 async function runAnalysisInProcess(
   jobId: string,
   repoOwner: string,
@@ -45,7 +31,7 @@ async function runAnalysisInProcess(
 ): Promise<void> {
   await prisma.analysisJob.update({
     where: { id: jobId },
-    data: { status: 'RUNNING', currentStep: 'Starting local analysis' },
+    data: { status: 'RUNNING', currentStep: 'Starting analysis' },
   });
 
   const token = decrypt(encryptedToken, ENCRYPTION_KEY);
@@ -61,8 +47,38 @@ async function runAnalysisInProcess(
 }
 
 /**
- * Create an AnalysisJob in the DB and enqueue it for processing.
- * Returns the new jobId.
+ * Trigger analysis via a self-call to /api/analyze/run so Vercel executes it
+ * as a separate serverless function invocation (fire-and-forget).
+ * This avoids needing Bull or a persistent worker process.
+ */
+async function triggerAnalysisViaHttp(payload: {
+  jobId: string;
+  repoOwner: string;
+  repoName: string;
+  encryptedToken: string;
+}): Promise<void> {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
+  const secret = process.env.WORKER_SECRET ?? process.env.BETTER_AUTH_SECRET!;
+
+  // Fire and forget — we don't await the response, Vercel runs it independently
+  fetch(`${appUrl}/api/analyze/run`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      // Internal secret so /api/analyze/run rejects outside calls
+      'x-worker-secret': secret,
+    },
+    body: JSON.stringify(payload),
+  }).catch((err) => {
+    logger.error(`[analysis] failed to trigger run route for ${payload.jobId}: ${err.message}`);
+  });
+}
+
+/**
+ * Create an AnalysisJob in the DB and kick off processing.
+ * - In development: runs in-process via setTimeout (existing behaviour).
+ * - In production (Vercel): fires an HTTP call to /api/analyze/run which
+ *   executes the pipeline in its own serverless function invocation.
  */
 export async function createAndEnqueueJob(
   repoUrl: string,
@@ -97,7 +113,7 @@ export async function createAndEnqueueJob(
     setTimeout(() => {
       void runAnalysisInProcess(job.id, owner, repo, encryptedToken).catch((error) => {
         logger.error(
-          `[analysis] local fallback failed for ${job.id}: ${
+          `[analysis] local run failed for ${job.id}: ${
             error instanceof Error ? error.message : 'Unknown error'
           }`
         );
@@ -107,29 +123,8 @@ export async function createAndEnqueueJob(
     return job.id;
   }
 
-  try {
-    await withTimeout(
-      addAnalysisJob(payload),
-      QUEUE_ENQUEUE_TIMEOUT_MS,
-      `Queue enqueue timed out after ${QUEUE_ENQUEUE_TIMEOUT_MS}ms`
-    );
-  } catch (error) {
-    await prisma.analysisJob.update({
-      where: { id: job.id },
-      data: {
-        status: 'FAILED',
-        currentStep: 'Queue unavailable',
-        errorMsg: 'Analysis queue is unavailable. Please try again.',
-      },
-    });
-
-    logger.error(
-      `[analysis] failed to enqueue ${job.id}: ${
-        error instanceof Error ? error.message : 'Unknown error'
-      }`
-    );
-    throw new AppError('Analysis queue is unavailable. Please try again.', 503);
-  }
+  // Production: trigger via HTTP so it runs in its own Vercel function invocation
+  await triggerAnalysisViaHttp(payload);
 
   return job.id;
 }
